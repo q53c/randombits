@@ -1,0 +1,59 @@
+针对 https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api?language=objc 这个的自检
+
+1. 解压要扫描的 .a 文件，目录 TARGET_DIR 中应该是解压后的 .o
+
+2. 执行以下命令
+
+grep -e '\w*NSUserDe\w*\b\|\bl\?stat\b\|\bfstat\w*\|\w*attrl\w*\|\w*onDate\w*\|\w*NSURLVolume\w*\|\w*NSFileSystem\w*\|\w*stat\w*fs\b\|\w*mach_abs\w*\|\w*Uptime\b\|\w*InputMode\w*' -o -a -R $TARGET_DIR
+
+----
+
+正则对应的规则：
+
+\w*NSUserDe\w*: 
+  - NSUserDefaults
+
+\bl\?stat\b:
+  - lstat
+  - stat
+
+\bfstat\w*:
+  - fstat
+  - fstatat
+
+\w*attrl\w*:
+  - getattrlist
+  - getattrlistbulk
+  - fgetattrlist
+  - getattrlistat
+
+\w*onDate\w*:
+  - NSFileModificationDate
+  - fileModificationDate
+  - NSURLContentModificationDateKey
+  - NSURLCreationDateKey
+
+\w*NSURLVolume\w*:
+  - NSURLVolumeAvailableCapacityKey
+  - NSURLVolumeAvailableCapacityForImportantUsageKey
+  - NSURLVolumeAvailableCapacityForOpportunisticUsageKey
+  - NSURLVolumeTotalCapacityKey
+  
+\w*NSFileSystem\w*:
+  - NSFileSystemFreeSize
+  - NSFileSystemSize
+  
+\w*stat\w*fs\b:
+  - statfs
+  - statvfs
+  - fstatfs
+  - fstatvfs
+
+\w*mach_abs\w*:
+  - mach_absolute_time
+  
+\w*Uptime\b:
+  - systemUptime
+  
+\w*InputMode\w*:
+  - activeInputModes

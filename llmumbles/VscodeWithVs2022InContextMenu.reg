@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\VSCode_VS2022]
+@="VSCode Here! (VS 2022)"
+"Icon"="C:\\Users\\YourUsername\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\VSCode_VS2022\command]
+@="powershell.exe -WindowStyle hidden -NoProfile -Command \"& {& 'C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\Launch-VsDevShell.ps1'; Set-Location '%V'; code .}\""
+

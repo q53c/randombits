@@ -52,3 +52,12 @@ This will mount the EFI volume "**Z**". (**you can't access the volume using win
 
 ---
 
+删除
+
+```
+mountvol Z: /D
+```
+或者
+```
+Get-Partition -DriveLetter Z | Remove-PartitionAccessPath -AccessPath "Z:"
+```

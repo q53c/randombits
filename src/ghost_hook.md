@@ -3,7 +3,7 @@
 Kasif Dekel  6/22/17 
 
 
-![Read More](https://www.cyberark.com/wp-content/uploads/2017/06/AdobeStock_51875542-e1498143508197.jpeg)
+![Read More](https://web.archive.org/web/20251111171503im_/https://www.cyberark.com/wp-content/uploads/2017/06/AdobeStock_51875542-e1498143508197.jpeg)
 
 In this article, we’ll present a new hooking technique that we have found during our research work.
 
@@ -71,7 +71,7 @@ ULONG64 LSTAR = ((ULONG64(*)())"\xB9\x82\x00\x00\xC0\x0F\x32\x48\xC1\xE2\x20\x48
 
 This will produce a naked function with the following instructions:
 
-![Read More](https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_1.png)
+![Read More](https://web.archive.org/web/20251111171503im_/https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_1.png)
 
 As mentioned, LSTAR is the kernel’s RIP SYSCALL entry (MSR entry 0xc0000082) for 64-bit software.
 
@@ -81,13 +81,13 @@ Once a user-mode (SYSCALL) or a kernel-mode (ZW functions) thread will branch in
 
 1. As mentioned before, we are allocating a tiny buffer for the CPU to get it filled almost immediately. We can also use the PTWRITE instruction to make it more precise. PTWRITE will allow us to write data to a processor trace packet, and once the buffer is full, the CPU will interrupt the execution and will call the PMI handler (controlled by us) in the context of the running thread. It is possible to completely alter the execution context at this point, which is exactly the same as what one could do via traditional opcode-replacement-based patching for a given location. Proof of Concept:
 
-![Read More](https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_2.png)
+![Read More](https://web.archive.org/web/20251111171503im_/https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_2.png)
 
 The technique described above, in the current implementation, will result in a race-condition manner. This stack trace demonstrates hooking the service function nt!NtClose, called by a user-mode application.
 
 The same thing can be done for example to an IDT routine:
 
-![Read More](https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_3.png)
+![Read More](https://web.archive.org/web/20251111171503im_/https://www.cyberark.com/wp-content/uploads/2017/06/ghost_hook_3.png)
 
 Registering to PMI is transparent to the current PatchGuard implementation. Because this technique uses hardware to gain control of a thread’s execution and kernel code/critical kernel structures aren’t being patched, it would be extremely difficult for Microsoft to detect and defeat this technique. Thus, the proposed method should be preferable (despite adding significant complexity to the implementation). Moreover, the suggested technique should be future proof and reliable across kernel versions.
 

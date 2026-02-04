@@ -1,0 +1,234 @@
+dxecore 阶段
+搜索 
+.data:0000000000014530 mBootServices   EFI_BOOT_SERVICES <<56524553544F4F42h, 20046h, 178h, 0, 0>, \
+.data:0000000000014530                                         ; DATA XREF: .data:mEfiSystemTableTemplate↑o
+.data:0000000000014530                                    offset CoreRaiseTpl, offset CoreRestoreTpl, \
+.data:0000000000014530                                    offset CoreAllocatePages, offset CoreFreePages, \
+.data:0000000000014530                                    offset CoreGetMemoryMap, offset CoreAllocatePool, \
+.data:0000000000014530                                    offset CoreFreePool, offset CoreCreateEvent, \
+.data:0000000000014530                                    offset CoreSetTimer, offset CoreWaitForEvent, \
+.data:0000000000014530                                    offset CoreSignalEvent, offset CoreCloseEvent, \
+.data:0000000000014530                                    offset CoreCheckEvent, \
+.data:0000000000014530                                    offset CoreInstallProtocolInterface, \
+.data:0000000000014530                                    offset CoreReinstallProtocolInterface, \
+.data:0000000000014530                                    offset CoreUninstallProtocolInterface, \
+.data:0000000000014530                                    offset CoreHandleProtocol, 0, \
+.data:0000000000014530                                    offset CoreRegisterProtocolNotify, \
+.data:0000000000014530                                    offset CoreLocateHandle, \
+.data:0000000000014530                                    offset CoreLocateDevicePath, \
+.data:0000000000014530                                    offset CoreInstallConfigurationTable, \
+.data:0000000000014530                                    offset CoreLoadImage, offset CoreStartImage, \
+.data:0000000000014530                                    offset CoreExit, offset CoreUnloadImage, \
+.data:0000000000014530                                    offset CoreExitBootServices, \
+.data:0000000000014530                                    offset CoreEfiNotAvailableYetArg2, \
+.data:0000000000014530                                    offset CoreStall, offset CoreSetWatchdogTimer, \
+.data:0000000000014530                                    offset CoreConnectController, \
+.data:0000000000014530                                    offset CoreDisconnectController, \
+.data:0000000000014530                                    offset CoreOpenProtocol, offset CoreCloseProtocol, \
+.data:0000000000014530                                    offset CoreOpenProtocolInformation, \
+.data:0000000000014530                                    offset CoreProtocolsPerHandle, \
+.data:0000000000014530                                    offset CoreLocateHandleBuffer, \
+.data:0000000000014530                                    offset CoreLocateProtocol, \
+.data:0000000000014530                                    offset CoreInstallMultipleProtocolInterfaces, \
+.data:0000000000014530                                    offset CoreUninstallMultipleProtocolInterfaces, \
+.data:0000000000014530                                    offset CoreEfiNotAvailableYetArg2, offset CopyMem, \
+.data:0000000000014530                                    offset SetMem, offset CoreCreateEventEx>
+
+搜索 mBootServices
+0: kd> s -b ffcb000 L23000 42 4F 4F 54 53 45 52 56
+00000000`0ffe48a0  42 4f 4f 54 53 45 52 56-46 00 02 00 78 01 00 00  BOOTSERVF...x...
+
+断点 StartImage：bp poi(ffe48a0 + d0)
+断点 LoadImage：bp poi(ffe48a0 + c8)
+ 
+从 call    qword ptr [rbx+20h] 发生转移
+.text:0000000000008817 48 8B CD                                      mov     ImageHandle, rbp
+.text:000000000000881A C6 43 18 01                                   mov     byte ptr [rbx+18h], 1
+.text:000000000000881E FF 53 20                                      call    qword ptr [rbx+20h]
+.text:0000000000008821 45 33 C9                                      xor     r9d, r9d        ; ExitData
+.text:0000000000008824 45 33 C0                                      xor     r8d, r8d        ; ExitDataSize
+
+就是 bp 0ffce4a7
+0ffce4a7 41ff542420               call    qword ptr [r12+20h]
+此时 step in 可进入 bootmgfw
+
+bootmgfw!SIPolicyVerifyPolicyIsPlatformKeySigned 校验失败，why？
+
+失败原因是 SIPolicyVerifyPolicyIsPlatformKeySigned 读不到证书。。。
+
+
+bootmgfw->winload：bootmgfw!Archpx64TransferTo64BitApplicationAsm
+ # Child-SP          RetAddr               Call Site
+00 00000000`0ffca4c8 00000000`1024a406     bootmgfw!Archpx64TransferTo64BitApplicationAsm
+01 00000000`0ffca4d0 00000000`101ab3c3     bootmgfw!BlpArchTransferTo64BitApplication+0xfa
+02 00000000`0ffca500 00000000`1018d1b8     bootmgfw!ImgArchStartBootApplication+0x4bb
+03 00000000`0ffca600 00000000`1003a25e     bootmgfw!BlImgStartBootApplication+0x180
+04 00000000`0ffca6e0 00000000`1003ae58     bootmgfw!BmTransferExecution+0x602
+05 00000000`0ffca840 00000000`10039708     bootmgfw!BmpLaunchBootEntry+0x270
+06 00000000`0ffca8f0 00000000`10038aea     bootmgfw!BmMain+0xab8
+07 00000000`0ffcab10 00000000`0ffce4ac     bootmgfw!EfiEntry+0x6a
+08 00000000`0ffcab50 00000000`00000000     0xffce4ac
+
+
+
+
+winload_prod!OslArchTransferToKernel
+<step....>
+0: kd> dt ntkrnlmp!_LOADER_PARAMETER_BLOCK @rcx
+   +0x000 OsMajorVersion   : 0xa
+   +0x004 OsMinorVersion   : 0
+   +0x008 Size             : 0x170
+   +0x00c OsLoaderSecurityVersion : 2
+   +0x010 LoadOrderListHead : _LIST_ENTRY [ 0xfffff802`71ea2e20 - 0xfffff802`71f567c0 ]
+   +0x020 MemoryDescriptorListHead : _LIST_ENTRY [ 0xfffff802`71f8e000 - 0xfffff802`71f8ef00 ]
+   +0x030 BootDriverListHead : _LIST_ENTRY [ 0xfffff802`71f074d0 - 0xfffff802`71f050a0 ]
+   +0x040 EarlyLaunchListHead : _LIST_ENTRY [ 0xfffff802`71db5210 - 0xfffff802`71db5210 ]
+   +0x050 CoreDriverListHead : _LIST_ENTRY [ 0xfffff802`71f09130 - 0xfffff802`71f06b20 ]
+   +0x060 CoreExtensionsDriverListHead : _LIST_ENTRY [ 0xfffff802`71f04bf0 - 0xfffff802`71f06130 ]
+   +0x070 TpmCoreDriverListHead : _LIST_ENTRY [ 0xfffff802`71eeb8d0 - 0xfffff802`71f08410 ]
+   +0x080 KernelStack      : 0xfffff802`7732d000
+   +0x088 Prcb             : 0xfffff802`72160180
+   +0x090 Process          : 0
+   +0x098 Thread           : 0
+   +0x0a0 KernelStackSize  : 0x7000
+   +0x0a4 RegistryLength   : 0xd00000
+   +0x0a8 RegistryBase     : 0xfffff802`7218e000 Void
+   +0x0b0 ConfigurationRoot : 0xfffff802`71dfff10 _CONFIGURATION_COMPONENT_DATA
+   +0x0b8 ArcBootDeviceName : 0xfffff802`72f489e0  "multi(0)disk(0)rdisk(0)partition(3)"
+   +0x0c0 ArcHalDeviceName : 0xfffff802`72f488e0  "multi(0)disk(0)rdisk(0)partition(1)"
+   +0x0c8 NtBootPathName   : 0xfffff802`71f8dfa0  "\WINDOWS\"
+   +0x0d0 NtHalPathName    : 0xfffff802`71f31990  "\"
+   +0x0d8 LoadOptions      : 0xfffff802`71db3ce0  " NOEXECUTE=OPTIN  FVEBOOT=2125824                         "
+   +0x0e0 NlsData          : 0xfffff802`71f53250 _NLS_DATA_BLOCK
+   +0x0e8 ArcDiskInformation : 0xfffff802`71e9aaa0 _ARC_DISK_INFORMATION
+   +0x0f0 Extension        : 0xfffff802`71db5340 _LOADER_PARAMETER_EXTENSION
+   +0x0f8 u                : <unnamed-tag>
+   +0x108 FirmwareInformation : _FIRMWARE_INFORMATION_LOADER_BLOCK
+   +0x148 OsBootstatPathName : (null) 
+   +0x150 ArcOSDataDeviceName : (null) 
+   +0x158 ArcWindowsSysPartName : (null) 
+   +0x160 MemoryDescriptorTree : _RTL_RB_TREE
+
+0: kd> bp ntkrnlmp!SepInitializeCodeIntegrity
+
+
+fffff802`e3400000
+
+.scriptload exdi_fix_module_list.js
+dx Debugger.State.Scripts.exdi_fix_module_list.Contents.fix()
+
+
+一定要加上size：.reload CI.dll=0xfffff80275740000,0x110000
+
+
+bp ci!CipInitialize
+
+CI!SIPolicyInitialize
+1: kd> k
+ # Child-SP          RetAddr               Call Site
+00 fffffb06`ddc076f8 fffff802`757ad00a     CI!SIPolicyInitialize
+01 fffffb06`ddc07700 fffff802`757a36c2     CI!SIPolicyInitializeFromSerializedPolicies+0x16a
+02 fffffb06`ddc077c0 fffff802`7575ab19     CI!CipInitializeSiPolicy+0x36
+03 fffffb06`ddc07800 fffff802`75792148     CI!CiInitializePolicyFromPolicies+0x2a5
+04 fffffb06`ddc07870 fffff802`e402f984     CI!CiInitializePolicy+0x2a8
+05 fffffb06`ddc079a0 fffff802`e400334a     nt!SeCodeIntegrityInitializePolicy+0x70
+06 fffffb06`ddc079d0 fffff802`e3af3ac3     nt!Phase1InitializationDiscard+0x1302
+07 fffffb06`ddc07b70 fffff802`e388c4da     nt!Phase1Initialization+0x23
+08 fffffb06`ddc07bb0 fffff802`e3aa32d4     nt!PspSystemThreadStartup+0x5a
+09 fffffb06`ddc07c00 00000000`00000000     nt!KiStartSystemThread+0x34
+
+bp ci!SIPolicyInitializeFromSerializedPolicies
+
+1: kd> db @rcx L100
+fffff807`35af02c0  08 00 00 00 02 00 00 00-28 00 00 00 10 0b 00 00  ........(.......
+fffff807`35af02d0  02 00 00 00 04 00 00 00-42 00 00 00 b8 04 00 00  ........B.......
+fffff807`35af02e0  0e 37 44 a2 c9 44 06 4c-b5 51 f6 01 6e 56 30 76  .7D..D.L.Q..nV0v
+fffff807`35af02f0  30 82 0b 0c 06 09 2a 86-48 86 f7 0d 01 07 02 a0  0.....*.H.......
+fffff807`35af0300  82 0a fd 30 82 0a f9 02-01 01 31 0f 30 0d 06 09  ...0......1.0...
+fffff807`35af0310  60 86 48 01 65 03 04 02-01 05 00 30 82 04 cb 06  `.H.e......0....
+fffff807`35af0320  09 2b 06 01 04 01 82 37-4f 01 a0 82 04 bc 04 82  .+.....7O.......
+fffff807`35af0330  04 b8 08 00 00 00 0e 37-44 a2 c9 44 06 4c b5 51  .......7D..D.L.Q
+fffff807`35af0340  f6 01 6e 56 30 76 e4 f7-07 2e 4c 19 20 4d b7 c9  ..nV0v....L. M..
+fffff807`35af0350  6f 44 a6 c5 a2 34 00 00-89 82 00 00 00 00 00 00  oD...4..........
+fffff807`35af0360  00 00 0b 00 00 00 02 00-00 00 00 00 00 00 00 00  ................
+fffff807`35af0370  0a 00 40 00 00 00 00 00-00 00 20 00 00 00 4e 80  ..@....... ...N.
+fffff807`35af0380  be 10 7c 86 0d e8 96 38-4b 3e ff 50 50 4d c2 d7  ..|....8K>.PPM..
+fffff807`35af0390  6a c7 15 1d f3 10 2a 44-50 63 7a 03 21 46 00 00  j.....*DPcz.!F..
+fffff807`35af03a0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+fffff807`35af03b0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+
+1: kd> dd @rcx+8
+fffff807`35af02d0  00000002 00000004 00000042 000004b8
+
+1: kd> db rsi L200
+fffff802`73096e00  28 00 00 00 36 38 03 00-01 00 00 00 05 00 00 00  (...68..........
+fffff802`73096e10  48 00 00 00 f8 2a 03 00-14 44 4c 78 f4 79 32 4c  H....*...DLx.y2L
+fffff802`73096e20  a6 a5 f0 fb 42 a5 1d 0d-30 83 03 38 31 06 09 2a  ....B...0..81..*
+fffff802`73096e30  86 48 86 f7 0d 01 07 02-a0 83 03 38 21 30 83 03  .H.........8!0..
+fffff802`73096e40  38 1c 02 01 01 31 0f 30-0d 06 09 60 86 48 01 65  8....1.0...`.H.e
+fffff802`73096e50  03 04 02 01 05 00 30 83-03 2b 0d 06 09 2b 06 01  ......0..+...+..
+fffff802`73096e60  04 01 82 37 4f 01 a0 83-03 2a fd 04 83 03 2a f8  ...7O....*....*.
+fffff802`73096e70  09 00 00 00 14 44 4c 78-f4 79 32 4c a6 a5 f0 fb  .....DLx.y2L....
+fffff802`73096e80  42 a5 1d 0d e4 f7 07 2e-4c 19 20 4d b7 c9 6f 44  B.......L. M..oD
+fffff802`73096e90  a6 c5 a2 34 00 00 85 90-02 00 00 00 7c 05 00 00  ...4........|...
+fffff802`73096ea0  99 02 00 00 01 00 00 00-00 00 00 00 28 73 0a 00  ............(s..
+fffff802`73096eb0  40 00 00 00 0c 00 00 00-01 0a 2b 06 01 04 01 82  @.........+.....
+fffff802`73096ec0  37 0a 03 05 0c 00 00 00-01 0a 2b 06 01 04 01 82  7.........+.....
+fffff802`73096ed0  37 0a 03 06 01 00 00 00-00 00 00 00 00 00 00 00  7...............
+fffff802`73096ee0  00 00 00 00 00 00 00 00-14 00 00 00 00 19 a9 f7  ................
+fffff802`73096ef0  8b 1d 37 8b 38 d2 ff 02-7a 90 0d be f1 f3 f1 85  ..7.8...z.......
+fffff802`73096f00  01 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+fffff802`73096f10  00 00 00 00 14 00 00 00-00 19 a9 f7 8b 1d 37 8b  ..............7.
+fffff802`73096f20  38 d2 ff 02 7a 90 0d be-f1 f3 f1 85 01 00 00 00  8...z...........
+fffff802`73096f30  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+fffff802`73096f40  14 00 00 00 00 38 bc 53-f2 ec 4a 26 97 43 00 af  .....8.S..J&.C..
+fffff802`73096f50  65 39 f5 8f 58 f9 b7 15-01 00 00 00 00 00 00 00  e9..X...........
+fffff802`73096f60  00 00 00 00 00 00 00 00-00 00 00 00 14 00 00 00  ................
+fffff802`73096f70  00 38 bc 53 f2 ec 4a 26-97 43 00 af 65 39 f5 8f  .8.S..J&.C..e9..
+fffff802`73096f80  58 f9 b7 15 01 00 00 00-00 00 00 00 00 00 00 00  X...............
+fffff802`73096f90  00 00 00 00 00 00 00 00-14 00 00 00 00 a5 a9 53  ...............S
+fffff802`73096fa0  4e 45 42 a5 44 42 d1 98-8a b4 07 c6 43 1a 93 a7  NEB.DB......C...
+fffff802`73096fb0  01 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+fffff802`73096fc0  00 00 00 00 14 00 00 00-00 f4 fc 25 8b fb e0 bc  ...........%....
+fffff802`73096fd0  57 c5 6c 02 c7 f5 5a 73-8c 04 33 5d 01 00 00 00  W.l...Zs..3]....
+fffff802`73096fe0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+fffff802`73096ff0  14 00 00 00 01 ae 02 87-14 a1 71 c9 c2 4e 7f df  ..........q..N..
+
+来源 SeCodeIntegrityInitializePolicy(arg0)
+  policy = read_qword(read_qword(arg0 + 0xf0) + 0xB58)
+  
+  sipolicy = policy + 0x70 + read_dword(policy + 0x18)
+  
+1: kd> r rcx
+rcx=fffff8061b26a1d0
+
+1: kd> dw poi(poi(fffff8061b26a1d0 + f0)+b58)+18 L1
+fffff806`1c543018  8250
+
+1: kd> dq poi(poi(fffff8061b26a1d0 + f0)+b58)+70 + 8250
+fffff806`1c54b2c0  00000002`00000008 00000b10`00000028
+fffff806`1c54b2d0  00000004`00000002 000004b8`00000042
+fffff806`1c54b2e0  4c0644c9`a244370e 7630566e`01f651b5
+
+1: kd> dt nt!_LOADER_PARAMETER_BLOCK Extension @rcx
+Extension : 0xfffff806`1b26a340 _LOADER_PARAMETER_EXTENSION
+
+1: kd> dt nt!_LOADER_PARAMETER_EXTENSION CodeIntegrityData 0xfffff806`1b26a340 
+CodeIntegrityData : 0xfffff806`1c543000 _LOADER_PARAMETER_CI_EXTENSION
+
+1: kd> dt nt!_LOADER_PARAMETER_CI_EXTENSION CodeIntegrityPolicyOffset 0xfffff806`1c543000
+CodeIntegrityPolicyOffset : 0x8250
+
+在 winload!OslBuildCodeIntegrityLoaderBlock 设置
+
+
+if ( !(unsigned __int8)OslIsStateSeparationEnabled(OslSystemHiveHandle)
+  && (int)OslGetCodeIntegrityCell(OslSystemHiveHandle, &TestFlags) >= 0
+  && (int)OslGetSubkey(OslSystemHiveHandle, TestFlags, L"Protected", &keyProtected) >= 0
+  && (unsigned int)OslGetDWordValue(OslSystemHiveHandle, keyProtected, L"Licensed", &Licensed) == 0xC0000225 )
+{
+  Licensed |= 1u;
+}
+
+if ( (Licensed & 1) != 0 )
+  BlImgCustomDriverSignersAllowed = 1;

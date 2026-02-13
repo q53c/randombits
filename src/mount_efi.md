@@ -1,4 +1,13 @@
 src: https://superuser.com/questions/1304215/mount-efi-partition-on-a-removable-media-in-windows-10
+----
+
+List partitions with powershell:
+```
+Get-CimInstance -Namespace "ROOT/Microsoft/Windows/Storage" -Query "SELECT * FROM MSFT_Partition"
+Get-CimInstance -Namespace "ROOT/Microsoft/Windows/Storage" -Query "SELECT * FROM MSFT_Partition WHERE DiskNumber=0"
+```
+
+PartitionNumber starts from 1, DiskNumber starts from 0
 
 ----
 

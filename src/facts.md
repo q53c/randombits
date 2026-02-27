@@ -1,0 +1,1 @@
+从 Windows 10 version 1803（2018年4月更新）开始，微软实施了新的内核缓解措施，禁止通过 MmMapIoSpace 直接将物理地址映射到涉及**页表（Page Tables）**的内存区域。[link](https://www.outflank.nl/blog/2023/12/14/mapping-virtual-to-physical-adresses-using-superfetch/)

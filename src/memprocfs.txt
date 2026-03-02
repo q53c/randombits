@@ -1,0 +1,50 @@
+import memprocfs
+vmm = memprocfs.Vmm(['-device', 'pmem'])
+
+VMM_PID_PROCESS_CLONE_WITH_KERNELMEMORY = 0x80000000
+
+# 枚举驱动
+vmm.kernel.process.module_list()
+
+# 驱动模块 by name
+vmm.kernel.process.module("win32k.sys")
+
+# 虚拟内存转物理内存（以 ci.dll 基址为例）
+vmm.kernel.process.memory.virt2phys(vmm.kernel.process.module("ci.dll").base)
+
+# 进程 by name (返回第一个)
+vmm.process("dwm.exe")
+
+# 进程 by name
+[p for p in vmm.process_list() if p.name == 'chrome.exe']
+
+# 进程 by name，支持访问内核地址
+pk = vmm.process(vmm.process("explorer.exe").pid | VMM_PID_PROCESS_CLONE_WITH_KERNELMEMORY)
+
+# win32k 物理地址
+pk.memory.virt2phys(pk.module("win32k.sys").base)
+
+# 读虚拟内存（win32k.sys 基址）
+pk.memory.read(pk.module("win32k.sys").base, 8)
+
+# 内存布局枚举
+pk.maps.vad()
+
+# 读物理内存（win32k.sys 基址）
+vmm.memory.read(pk.memory.virt2phys(pk.module("win32k.sys").base), 8)
+
+# 注册表 reg_hive
+hklm_sys = [hv for hv in vmm.reg_hive_list() if hv.path == r'\REGISTRY\MACHINE\SYSTEM'][0]
+
+# 注册表 reg_key
+Run = vmm.reg_key(r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run')
+
+# 注册表值枚举
+[(v.name, v.type, v.size, v.value) for v in Run.values()]
+
+# 成员偏移
+vmm.kernel.pdb.type_child_offset("_EPROCESS", "VadRoot")
+
+# 结构体大小
+vmm.kernel.pdb.type_size("_EPROCESS")
+

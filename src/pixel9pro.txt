@@ -1,0 +1,15 @@
+src:【告别封号！模拟器完美伪装云真机教程｜Pixel 9 Pro-哔哩哔哩】 https://b23.tv/EXu3XDB
+
+如果有任何问题,欢迎在评论区讨论,我也会尽快解答,制作不易,给个三连和关注吧🫠
+
+视频中用到的命令:
+解锁OEM启动:"C:\Users\<你的用户名>\AppData\Local\Android\Sdk\emulator\emulator.exe" -avd "Pixel_9_Pro" -writable-system -no-snapshot-load
+root:adb root
+挂载系统镜像:adb remount
+注入真机的指纹:adb shell "echo 'ro.product.model=Pixel 9 Pro' >> /system/build.prop && echo 'ro.product.brand=google' >> /system/build.prop && echo 'ro.product.name=caiman' >> /system/build.prop && echo 'ro.product.device=caiman' >> /system/build.prop && echo 'ro.build.type=user' >> /system/build.prop && echo 'ro.build.tags=release-keys' >> /system/build.prop && echo 'ro.build.fingerprint=google/caiman/caiman:15/AP3A.240905.001.A2/12345678:user/release-keys' >> /system/build.prop && echo 'ro.serialno=R58N9Pro2025X' >> /system/build.prop"
+重启命令:adb reboot
+验证指纹:adb shell getprop ro.product.model
+                adb shell getprop ro.build.fingerprint
+删除su:adb shell "rm -f /system/bin/su /system/xbin/su /sbin/su /vendor/bin/su"
+验证su是否存在:adb shell "which su"
+这样你就有一个云真机了!
